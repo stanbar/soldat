@@ -90,7 +90,7 @@ func _physics_process(_delta: float) -> void:
 	physics.do_verlet_timestep()
 
 	# Clamp velocity (port of Sprites.pas MAX_VELOCITY)
-	var vel := physics.velocity[particle_idx]
+	var vel: Vector2 = physics.velocity[particle_idx]
 	if vel.length() > MovementConstants.MAX_VELOCITY:
 		vel = vel.normalized() * MovementConstants.MAX_VELOCITY
 		physics.pos[particle_idx] = physics.old_pos[particle_idx] + vel
@@ -331,8 +331,8 @@ func _check_ground() -> void:
 	if not map:
 		return
 
-	var p := physics.pos[particle_idx]
-	var vel := physics.velocity[particle_idx]
+	var p: Vector2 = physics.pos[particle_idx]
+	var vel: Vector2 = physics.velocity[particle_idx]
 	on_ground = false
 
 	# Leg collision check at (x+2, y+2) and (x-2, y+2)
@@ -365,7 +365,7 @@ func _check_map_collision(x: float, y: float) -> Dictionary:
 
 	var num := particle_idx
 	var p := Vector2(x, y)
-	var vel := physics.velocity[num]
+	var vel: Vector2 = physics.velocity[num]
 	var test_pos := p + vel
 
 	var result := map.collision_test(test_pos)
@@ -384,8 +384,8 @@ func _check_map_collision(x: float, y: float) -> Dictionary:
 		return result
 
 	# Collision response (lines 2718-2750)
-	var perp := result.normal
-	var d := result.distance
+	var perp: Vector2 = result.normal
+	var d: float = result.distance
 	perp = perp.normalized() * d
 
 	var vel_len := vel.length()
