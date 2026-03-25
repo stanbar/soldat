@@ -1,8 +1,6 @@
 ## Main Game Scene - Orchestrates the Climb game
 extends Node2D
 
-const MC = MovementConstants
-
 @onready var player: Node2D = $Player
 @onready var camera: Camera2D = $Camera2D
 @onready var hud: CanvasLayer = $HUD
@@ -18,23 +16,27 @@ var ghost: Node2D  # GhostReplay instance
 
 var poly_map: PolyMap
 var current_map_data: Dictionary = {}
-var checkpoint_zones: Array[Rect2] = []
+var checkpoint_zones := []
 var finish_zone: Rect2 = Rect2()
 var start_triggered: bool = false
 
-# Polygon colors for rendering
-var poly_colors := {
-	MC.POLY_TYPE_NORMAL: Color(0.35, 0.30, 0.25),
-	MC.POLY_TYPE_ICE: Color(0.6, 0.85, 0.95),
-	MC.POLY_TYPE_BOUNCY: Color(0.2, 0.7, 0.3),
-	MC.POLY_TYPE_DEADLY: Color(0.8, 0.15, 0.1),
-	MC.POLY_TYPE_BLOODY_DEADLY: Color(0.7, 0.1, 0.05),
-	MC.POLY_TYPE_LAVA: Color(0.9, 0.3, 0.05),
-	MC.POLY_TYPE_HURTS: Color(0.7, 0.5, 0.2),
-}
+# Polygon colors for rendering - initialized in _ready since constants
+# can't be used as dict keys at class level
+var poly_colors := {}
 
 
 func _ready() -> void:
+	# Initialize poly colors
+	poly_colors = {
+		MovementConstants.POLY_TYPE_NORMAL: Color(0.35, 0.30, 0.25),
+		MovementConstants.POLY_TYPE_ICE: Color(0.6, 0.85, 0.95),
+		MovementConstants.POLY_TYPE_BOUNCY: Color(0.2, 0.7, 0.3),
+		MovementConstants.POLY_TYPE_DEADLY: Color(0.8, 0.15, 0.1),
+		MovementConstants.POLY_TYPE_BLOODY_DEADLY: Color(0.7, 0.1, 0.05),
+		MovementConstants.POLY_TYPE_LAVA: Color(0.9, 0.3, 0.05),
+		MovementConstants.POLY_TYPE_HURTS: Color(0.7, 0.5, 0.2),
+	}
+
 	# Create subsystems
 	climb_timer = preload("res://scripts/climb_timer.gd").new()
 	add_child(climb_timer)
@@ -112,7 +114,8 @@ func load_map(map_data: Dictionary) -> void:
 	climb_timer.reset()
 	start_triggered = false
 	ghost.stop_playback()
-	ghost.stop_recording() if ghost.recording else null
+	if ghost.recording:
+		ghost.stop_recording(INF)
 
 	map_name_label.text = map_data.get("name", "Unknown Map")
 
@@ -156,7 +159,8 @@ func _on_restart() -> void:
 	player._respawn()
 	climb_timer.reset()
 	start_triggered = false
-	ghost.stop_recording(INF) if ghost.recording else null
+	if ghost.recording:
+		ghost.stop_recording(INF)
 	ghost.start_playback()
 	player.position = current_map_data.spawn
 	player.physics.pos[player.particle_idx] = current_map_data.spawn
@@ -175,12 +179,11 @@ func _draw() -> void:
 
 	# Draw checkpoint zones
 	for i in checkpoint_zones.size():
-		var cp := checkpoint_zones[i]
-		var hit := i in climb_timer.checkpoints_hit
+		var cp: Rect2 = checkpoint_zones[i]
+		var hit: bool = i in climb_timer.checkpoints_hit
 		var color := Color(0, 1, 0, 0.3) if hit else Color(1, 1, 0, 0.2)
 		draw_rect(cp, color)
 
 	# Draw finish zone
 	if finish_zone.size != Vector2.ZERO:
 		draw_rect(finish_zone, Color(1, 0.8, 0, 0.3))
-		# Draw "FINISH" text would go here with a font

@@ -2,7 +2,6 @@
 ## This is the core of the Soldat movement feel.
 extends Node2D
 
-const MC = MovementConstants
 
 # Animation state IDs (simplified from Soldat's full animation system)
 enum Anim {
@@ -13,7 +12,8 @@ enum Anim {
 }
 
 # Animation frame counts (from Soldat's animation data)
-const ANIM_FRAMES := {
+# Can't use enum keys in const dict, so use static var
+static var ANIM_FRAMES := {
 	Anim.STAND: 1,
 	Anim.RUN: 32,
 	Anim.RUN_BACK: 32,
@@ -66,9 +66,9 @@ signal finished(time: float)
 
 func _ready() -> void:
 	physics = VerletPhysics.new()
-	physics.gravity = MC.PLAYER_GRAVITY
-	physics.v_damping = MC.V_DAMPING
-	physics.time_step = MC.PHYSICS_TIMESTEP
+	physics.gravity = MovementConstants.PLAYER_GRAVITY
+	physics.v_damping = MovementConstants.V_DAMPING
+	physics.time_step = MovementConstants.PHYSICS_TIMESTEP
 	physics.create_part(position, Vector2.ZERO, 1.0, particle_idx)
 	last_checkpoint = position
 
@@ -91,8 +91,8 @@ func _physics_process(_delta: float) -> void:
 
 	# Clamp velocity (port of Sprites.pas MAX_VELOCITY)
 	var vel := physics.velocity[particle_idx]
-	if vel.length() > MC.MAX_VELOCITY:
-		vel = vel.normalized() * MC.MAX_VELOCITY
+	if vel.length() > MovementConstants.MAX_VELOCITY:
+		vel = vel.normalized() * MovementConstants.MAX_VELOCITY
 		physics.pos[particle_idx] = physics.old_pos[particle_idx] + vel
 
 	# Ground detection (port of Sprites.pas lines 856-876)
@@ -134,22 +134,22 @@ func _process_movement() -> void:
 	if body_anim == Anim.ROLL or body_anim == Anim.ROLL_BACK:
 		if legs_anim == Anim.ROLL:
 			if on_ground:
-				physics.forces[num].x = direction * MC.ROLLSPEED
+				physics.forces[num].x = direction * MovementConstants.ROLLSPEED
 			else:
-				physics.forces[num].x = direction * 2 * MC.FLYSPEED
+				physics.forces[num].x = direction * 2 * MovementConstants.FLYSPEED
 		elif legs_anim == Anim.ROLL_BACK:
 			if on_ground:
-				physics.forces[num].x = -direction * MC.ROLLSPEED
+				physics.forces[num].x = -direction * MovementConstants.ROLLSPEED
 			else:
-				physics.forces[num].x = -direction * 2 * MC.FLYSPEED
+				physics.forces[num].x = -direction * 2 * MovementConstants.FLYSPEED
 
 			# Backflip jump boost (lines 1608-1618) — THE core Climb trick
-			if legs_frame > MC.BACKFLIP_BOOST_START_FRAME and \
-					legs_frame < MC.BACKFLIP_BOOST_END_FRAME:
+			if legs_frame > MovementConstants.BACKFLIP_BOOST_START_FRAME and \
+					legs_frame < MovementConstants.BACKFLIP_BOOST_END_FRAME:
 				if control_up:
-					physics.forces[num].y -= MC.BACKFLIP_JUMP_BOOST
-					physics.forces[num].x *= MC.BACKFLIP_X_DAMPEN
-					physics.velocity[num].x *= MC.BACKFLIP_VEL_X_DAMPEN
+					physics.forces[num].y -= MovementConstants.BACKFLIP_JUMP_BOOST
+					physics.forces[num].x *= MovementConstants.BACKFLIP_X_DAMPEN
+					physics.velocity[num].x *= MovementConstants.BACKFLIP_VEL_X_DAMPEN
 
 		# Handle roll/backflip completion (lines 2028-2075)
 		if legs_frame >= _get_num_frames(legs_anim):
@@ -184,7 +184,7 @@ func _process_movement() -> void:
 	# Down+Right: roll or crouch-run (lines 1622-1676)
 	if control_right and control_down:
 		if on_ground:
-			if legs_anim in [Anim.RUN, Anim.RUN_BACK, Anim.FALL]:
+			if legs_anim == Anim.RUN or legs_anim == Anim.RUN_BACK or legs_anim == Anim.FALL:
 				# Direction determines Roll vs RollBack
 				if direction == 1:
 					_set_anim(Anim.ROLL)
@@ -197,14 +197,14 @@ func _process_movement() -> void:
 					_set_legs_anim(Anim.CROUCH_RUN_BACK)
 
 			if legs_anim == Anim.CROUCH_RUN or legs_anim == Anim.CROUCH_RUN_BACK:
-				physics.forces[num].x = MC.CROUCHRUNSPEED
+				physics.forces[num].x = MovementConstants.CROUCHRUNSPEED
 			elif legs_anim == Anim.ROLL or legs_anim == Anim.ROLL_BACK:
-				physics.forces[num].x = 2 * MC.CROUCHRUNSPEED
+				physics.forces[num].x = 2 * MovementConstants.CROUCHRUNSPEED
 
 	# Down+Left: roll or crouch-run (lines 1678-1730)
 	elif control_left and control_down:
 		if on_ground:
-			if legs_anim in [Anim.RUN, Anim.RUN_BACK, Anim.FALL]:
+			if legs_anim == Anim.RUN or legs_anim == Anim.RUN_BACK or legs_anim == Anim.FALL:
 				if direction == 1:
 					_set_anim(Anim.ROLL_BACK)
 				else:
@@ -216,19 +216,20 @@ func _process_movement() -> void:
 					_set_legs_anim(Anim.CROUCH_RUN)
 
 			if legs_anim == Anim.CROUCH_RUN or legs_anim == Anim.CROUCH_RUN_BACK:
-				physics.forces[num].x = -MC.CROUCHRUNSPEED
+				physics.forces[num].x = -MovementConstants.CROUCHRUNSPEED
 			elif legs_anim == Anim.ROLL or legs_anim == Anim.ROLL_BACK:
-				physics.forces[num].x = -2 * MC.CROUCHRUNSPEED
+				physics.forces[num].x = -2 * MovementConstants.CROUCHRUNSPEED
 
 	# Right+Up: side jump right (lines 1777-1822)
 	elif control_right and control_up:
 		if on_ground:
-			if legs_anim in [Anim.RUN, Anim.RUN_BACK, Anim.STAND,
-					Anim.CROUCH, Anim.CROUCH_RUN, Anim.CROUCH_RUN_BACK]:
+			if legs_anim == Anim.RUN or legs_anim == Anim.RUN_BACK or legs_anim == Anim.STAND \
+					or legs_anim == Anim.CROUCH or legs_anim == Anim.CROUCH_RUN \
+					or legs_anim == Anim.CROUCH_RUN_BACK:
 				_set_legs_anim(Anim.JUMP_SIDE)
 			if legs_frame >= _get_num_frames(legs_anim):
 				_set_legs_anim(Anim.RUN)
-		elif legs_anim in [Anim.ROLL, Anim.ROLL_BACK]:
+		elif legs_anim == Anim.ROLL or legs_anim == Anim.ROLL_BACK:
 			if direction == 1:
 				_set_legs_anim(Anim.RUN)
 			else:
@@ -241,20 +242,21 @@ func _process_movement() -> void:
 
 		# Side jump forces (lines 1815-1822)
 		if legs_anim == Anim.JUMP_SIDE:
-			if legs_frame > MC.SIDEJUMP_FORCE_START_FRAME and \
-					legs_frame < MC.SIDEJUMP_FORCE_END_FRAME:
-				physics.forces[num].x = MC.JUMPDIRSPEED
-				physics.forces[num].y = -MC.JUMPDIRSPEED / 1.2
+			if legs_frame > MovementConstants.SIDEJUMP_FORCE_START_FRAME and \
+					legs_frame < MovementConstants.SIDEJUMP_FORCE_END_FRAME:
+				physics.forces[num].x = MovementConstants.JUMPDIRSPEED
+				physics.forces[num].y = -MovementConstants.JUMPDIRSPEED / 1.2
 
 	# Left+Up: side jump left (lines 1825-1870)
 	elif control_left and control_up:
 		if on_ground:
-			if legs_anim in [Anim.RUN, Anim.RUN_BACK, Anim.STAND,
-					Anim.CROUCH, Anim.CROUCH_RUN, Anim.CROUCH_RUN_BACK]:
+			if legs_anim == Anim.RUN or legs_anim == Anim.RUN_BACK or legs_anim == Anim.STAND \
+					or legs_anim == Anim.CROUCH or legs_anim == Anim.CROUCH_RUN \
+					or legs_anim == Anim.CROUCH_RUN_BACK:
 				_set_legs_anim(Anim.JUMP_SIDE)
 			if legs_frame >= _get_num_frames(legs_anim):
 				_set_legs_anim(Anim.RUN)
-		elif legs_anim in [Anim.ROLL, Anim.ROLL_BACK]:
+		elif legs_anim == Anim.ROLL or legs_anim == Anim.ROLL_BACK:
 			if direction == -1:
 				_set_legs_anim(Anim.RUN)
 			else:
@@ -265,10 +267,10 @@ func _process_movement() -> void:
 				_set_legs_anim(Anim.JUMP_SIDE)
 
 		if legs_anim == Anim.JUMP_SIDE:
-			if legs_frame > MC.SIDEJUMP_FORCE_START_FRAME and \
-					legs_frame < MC.SIDEJUMP_FORCE_END_FRAME:
-				physics.forces[num].x = -MC.JUMPDIRSPEED
-				physics.forces[num].y = -MC.JUMPDIRSPEED / 1.2
+			if legs_frame > MovementConstants.SIDEJUMP_FORCE_START_FRAME and \
+					legs_frame < MovementConstants.SIDEJUMP_FORCE_END_FRAME:
+				physics.forces[num].x = -MovementConstants.JUMPDIRSPEED
+				physics.forces[num].y = -MovementConstants.JUMPDIRSPEED / 1.2
 
 	# Up only: vertical jump (lines 1873-1898)
 	elif control_up:
@@ -279,9 +281,9 @@ func _process_movement() -> void:
 				_set_legs_anim(Anim.STAND)
 
 		if legs_anim == Anim.JUMP:
-			if legs_frame > MC.JUMP_FORCE_START_FRAME and \
-					legs_frame < MC.JUMP_FORCE_END_FRAME:
-				physics.forces[num].y = -MC.JUMPSPEED
+			if legs_frame > MovementConstants.JUMP_FORCE_START_FRAME and \
+					legs_frame < MovementConstants.JUMP_FORCE_END_FRAME:
+				physics.forces[num].y = -MovementConstants.JUMPSPEED
 			if legs_frame >= _get_num_frames(legs_anim):
 				_set_legs_anim(Anim.FALL)
 
@@ -298,10 +300,10 @@ func _process_movement() -> void:
 			_set_legs_anim(Anim.RUN_BACK)
 
 		if on_ground:
-			physics.forces[num].x = MC.RUNSPEED
-			physics.forces[num].y = -MC.RUNSPEEDUP
+			physics.forces[num].x = MovementConstants.RUNSPEED
+			physics.forces[num].y = -MovementConstants.RUNSPEEDUP
 		else:
-			physics.forces[num].x = MC.FLYSPEED
+			physics.forces[num].x = MovementConstants.FLYSPEED
 
 	# Left only: run (lines 1943-1967)
 	elif control_left:
@@ -311,10 +313,10 @@ func _process_movement() -> void:
 			_set_legs_anim(Anim.RUN_BACK)
 
 		if on_ground:
-			physics.forces[num].x = -MC.RUNSPEED
-			physics.forces[num].y = -MC.RUNSPEEDUP
+			physics.forces[num].x = -MovementConstants.RUNSPEED
+			physics.forces[num].y = -MovementConstants.RUNSPEEDUP
 		else:
-			physics.forces[num].x = -MC.FLYSPEED
+			physics.forces[num].x = -MovementConstants.FLYSPEED
 
 	# No input (lines 1970-1983)
 	else:
@@ -329,13 +331,13 @@ func _check_ground() -> void:
 	if not map:
 		return
 
-	var pos := physics.pos[particle_idx]
+	var p := physics.pos[particle_idx]
 	var vel := physics.velocity[particle_idx]
 	on_ground = false
 
 	# Leg collision check at (x+2, y+2) and (x-2, y+2)
 	# Port of Sprites.pas lines 858-862
-	var check_pos := pos + vel
+	var check_pos := p + vel
 	var result := _check_map_collision(check_pos.x + 2, check_pos.y + 2)
 	if not result.collided:
 		result = _check_map_collision(check_pos.x - 2, check_pos.y + 2)
@@ -362,28 +364,24 @@ func _check_map_collision(x: float, y: float) -> Dictionary:
 		return {"collided": false}
 
 	var num := particle_idx
-	var pos := Vector2(x, y)
+	var p := Vector2(x, y)
 	var vel := physics.velocity[num]
-	var test_pos := pos + vel
+	var test_pos := p + vel
 
 	var result := map.collision_test(test_pos)
 	if not result.collided:
 		return {"collided": false}
 
 	var poly_type: int = result.poly_type
-	var perp_vec: Vector2 = result.perp_vec
 	var step_normal: Vector2 = result.normal
 
 	# Handle special polygon types
-	if poly_type == MC.POLY_TYPE_DEADLY or poly_type == MC.POLY_TYPE_BLOODY_DEADLY:
+	if poly_type == MovementConstants.POLY_TYPE_DEADLY or poly_type == MovementConstants.POLY_TYPE_BLOODY_DEADLY:
 		_die()
 		return result
-	if poly_type == MC.POLY_TYPE_LAVA:
+	if poly_type == MovementConstants.POLY_TYPE_LAVA:
 		_die()
 		return result
-
-	# Fall sound thresholds (lines 2625-2646) — just for feel tracking
-	# TODO: Add sound effects
 
 	# Collision response (lines 2718-2750)
 	var perp := result.normal
@@ -397,7 +395,7 @@ func _check_map_collision(x: float, y: float) -> Dictionary:
 	physics.old_pos[num] = physics.pos[num]
 	physics.pos[num] -= perp
 
-	if poly_type == MC.POLY_TYPE_BOUNCY:
+	if poly_type == MovementConstants.POLY_TYPE_BOUNCY:
 		perp = perp.normalized() * result.bounciness * vel_len
 
 	physics.velocity[num] -= perp
@@ -406,24 +404,24 @@ func _check_map_collision(x: float, y: float) -> Dictionary:
 
 	# Surface friction (lines 2753-2822)
 	# Only apply when the step normal points upward (standing surface)
-	if step_normal.y > MC.SLIDELIMIT:
-		if poly_type != MC.POLY_TYPE_ICE and poly_type != MC.POLY_TYPE_BOUNCY:
-			if legs_anim in [Anim.STAND, Anim.FALL, Anim.CROUCH]:
+	if step_normal.y > MovementConstants.SLIDELIMIT:
+		if poly_type != MovementConstants.POLY_TYPE_ICE and poly_type != MovementConstants.POLY_TYPE_BOUNCY:
+			if legs_anim == Anim.STAND or legs_anim == Anim.FALL or legs_anim == Anim.CROUCH:
 				# Standing friction: instant stop
-				physics.velocity[num].x *= MC.STANDSURFACECOEFX
-				physics.velocity[num].y *= MC.STANDSURFACECOEFY
+				physics.velocity[num].x *= MovementConstants.STANDSURFACECOEFX
+				physics.velocity[num].y *= MovementConstants.STANDSURFACECOEFY
 				physics.forces[num].x -= physics.velocity[num].x
 			else:
 				# Moving friction
-				physics.velocity[num].x *= MC.SURFACECOEFX
-				physics.velocity[num].y *= MC.SURFACECOEFY
+				physics.velocity[num].x *= MovementConstants.SURFACECOEFX
+				physics.velocity[num].y *= MovementConstants.SURFACECOEFY
 
 		# Cancel gravity when standing still on flat ground (lines 2768-2771)
-		if legs_anim in [Anim.STAND, Anim.CROUCH, Anim.FALL]:
-			if abs(physics.velocity[num].x) < MC.SLIDELIMIT and \
-					step_normal.y > MC.SLIDELIMIT:
+		if legs_anim == Anim.STAND or legs_anim == Anim.CROUCH or legs_anim == Anim.FALL:
+			if abs(physics.velocity[num].x) < MovementConstants.SLIDELIMIT and \
+					step_normal.y > MovementConstants.SLIDELIMIT:
 				physics.pos[num] = physics.old_pos[num]
-				physics.forces[num].y -= MC.PLAYER_GRAVITY
+				physics.forces[num].y -= MovementConstants.PLAYER_GRAVITY
 
 	return result
 
@@ -451,9 +449,9 @@ func _respawn() -> void:
 	body_anim = Anim.STAND
 
 
-func set_checkpoint(pos: Vector2) -> void:
-	last_checkpoint = pos
-	checkpoint_reached.emit(pos)
+func set_checkpoint(cp: Vector2) -> void:
+	last_checkpoint = cp
+	checkpoint_reached.emit(cp)
 
 
 func _set_legs_anim(anim: Anim) -> void:

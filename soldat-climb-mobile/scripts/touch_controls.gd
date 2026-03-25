@@ -2,7 +2,7 @@
 ## Handles mobile touch input and keyboard fallback.
 ## Right zone: aim zone (touch position = facing direction) + tap=jump, swipe down=crouch
 ## Left zone: d-pad for left/right movement
-extends CanvasLayer
+extends Node
 
 signal input_changed(left: bool, right: bool, up: bool, down: bool, aim_x: float)
 
@@ -37,7 +37,7 @@ var player_screen_x: float = 480.0  # Updated each frame by main scene
 
 
 func _ready() -> void:
-	layer = 10  # Render above game
+	pass
 
 
 func _process(_delta: float) -> void:
@@ -115,7 +115,7 @@ func _handle_screen_drag(event: InputEventScreenDrag) -> void:
 		aim_x = event.position.x
 
 
-func _update_dpad(pos: Vector2, screen_height: float) -> void:
+func _update_dpad(pos: Vector2, _screen_height: float) -> void:
 	# Simple left/right based on position in left zone
 	var screen_width := get_viewport().get_visible_rect().size.x
 	var zone_center_x := screen_width * LEFT_ZONE_WIDTH * 0.5
@@ -126,39 +126,3 @@ func _update_dpad(pos: Vector2, screen_height: float) -> void:
 
 func _has_active_touches() -> bool:
 	return _left_touch_id >= 0 or _right_touch_id >= 0
-
-
-func _draw() -> void:
-	# Draw touch control overlay (semi-transparent)
-	var screen := get_viewport().get_visible_rect().size
-	var zone_x := screen.x * LEFT_ZONE_WIDTH
-
-	# Left zone background
-	draw_rect(Rect2(0, screen.y * 0.5, zone_x, screen.y * 0.5),
-		Color(1, 1, 1, 0.05))
-
-	# D-pad buttons
-	var btn_y := screen.y - DPAD_BUTTON_SIZE - BUTTON_MARGIN
-	var left_btn := Rect2(BUTTON_MARGIN, btn_y, DPAD_BUTTON_SIZE, DPAD_BUTTON_SIZE)
-	var right_btn := Rect2(BUTTON_MARGIN + DPAD_BUTTON_SIZE + 10, btn_y,
-		DPAD_BUTTON_SIZE, DPAD_BUTTON_SIZE)
-
-	var left_color := Color(1, 1, 1, 0.3) if control_left else Color(1, 1, 1, 0.1)
-	var right_color := Color(1, 1, 1, 0.3) if control_right else Color(1, 1, 1, 0.1)
-
-	draw_rect(left_btn, left_color)
-	draw_rect(right_btn, right_color)
-
-	# Right zone - jump and aim indicator
-	var jump_btn := Rect2(screen.x - BUTTON_MARGIN - ACTION_BUTTON_SIZE,
-		btn_y - ACTION_BUTTON_SIZE - 10, ACTION_BUTTON_SIZE, ACTION_BUTTON_SIZE)
-	var crouch_btn := Rect2(screen.x - BUTTON_MARGIN - ACTION_BUTTON_SIZE,
-		btn_y, ACTION_BUTTON_SIZE, ACTION_BUTTON_SIZE)
-
-	var jump_color := Color(0.3, 1, 0.3, 0.3) if control_up else Color(0.3, 1, 0.3, 0.1)
-	var crouch_color := Color(1, 0.5, 0.3, 0.3) if control_down else Color(1, 0.5, 0.3, 0.1)
-
-	draw_rect(jump_btn, jump_color)
-	draw_rect(crouch_btn, crouch_color)
-
-	queue_redraw()

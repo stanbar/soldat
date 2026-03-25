@@ -9,7 +9,7 @@ signal death_counted(total: int)
 var running: bool = false
 var elapsed: float = 0.0
 var death_count: int = 0
-var checkpoints_hit: Array[int] = []
+var checkpoints_hit := []
 var best_time: float = INF
 
 

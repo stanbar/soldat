@@ -23,7 +23,6 @@ offset_top = 10.0
 offset_right = 250.0
 offset_bottom = 40.0
 text = "00:00.000"
-label_settings = SubResource("LabelSettings_timer")
 
 [node name="DeathLabel" type="Label" parent="HUD"]
 offset_left = 10.0
